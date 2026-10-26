@@ -1,193 +1,126 @@
-🚗 Classical Computer Vision & Lane Line Extractor
-📌 Project Overview
+# Lane Line Extractor (Classical Computer Vision)
 
-This project implements a Lane Line Extractor using Python and OpenCV to detect road lane boundaries in static road images using classical computer vision techniques.
+A lane line extractor built with **OpenCV** and **NumPy**. It processes static road images and isolates highway lane lines using only classical computer vision techniques (no deep learning). This is the groundwork for a perception system.
 
-The system processes road images through HSV color filtering, Gaussian blur, Canny edge detection, and Region of Interest (ROI) masking. It then uses the Probabilistic Hough Line Transform to detect and visualize the left and right lane lines.
+## Results
 
-The objective is to understand the fundamental image processing techniques used in road perception systems.
+### Test 1: mountain highway (`test1.jpeg`)
 
-🎯 Objectives
-Load and process static road images using OpenCV.
-Convert images from BGR to HSV color space.
-Extract white and yellow lane markings using color filtering.
-Apply Gaussian blur to reduce image noise.
-Use Canny edge detection to identify lane boundaries.
-Apply ROI masking to isolate the road region.
-Detect and draw lane lines on the original road images.
-Save intermediate processing stages and final results.
-🛠️ Technologies Used
-Python
-OpenCV
-NumPy
-Classical Computer Vision
-📂 Project Structure
-text
-lane-line-extractor/
-│
-├── lane_line_extractor.py
+| Input | Extracted lane lines |
+|-------|----------------------|
+| ![Test 1 input](test_images/test1.jpeg) | ![Test 1 result](output/test1_8_final_lanes.png) |
+
+### Test 2: highway with guardrail (`test2.jpeg`)
+
+| Input | Extracted lane lines |
+|-------|----------------------|
+| ![Test 2 input](test_images/test2.jpeg) | ![Test 2 result](output/test2_8_final_lanes.png) |
+
+In both images the red lines follow the dashed center line on the left and the solid white edge line on the right, so the lane the car is driving in is outlined. The trees, mountains, sky, and guardrail are ignored because of the color filter and the ROI mask.
+
+### Full pipeline (all 8 stages)
+
+![Pipeline grid test 1](output/test1_pipeline_grid.png)
+![Pipeline grid test 2](output/test2_pipeline_grid.png)
+
+> The script saves every stage to the `output/` folder after each run. Put `test1.jpeg` and `test2.jpeg` in `test_images/` and commit the `output/` files so the images show on GitHub.
+
+## How it works
+
+Each image goes through this pipeline:
+
+1. **Load and resize**: the image is loaded with OpenCV and resized to a standard width of 960 px so the settings behave the same on every image.
+2. **HSV color filtering**: the image is converted from BGR to HSV and only **white** and **yellow** pixels are kept (the colors of lane paint). HSV separates color from brightness, so it is much more robust to lighting changes than filtering in BGR. The white brightness threshold is chosen automatically from the road area (97th percentile of brightness), or you can set it by hand.
+3. **Gaussian blur**: reduces noise so that Canny does not detect false edges.
+4. **Canny edge detection**: finds the boundaries of the filtered lane paint (default thresholds 50 / 150).
+5. **Region of Interest (ROI) mask**: a trapezoid in front of the camera keeps only the road area and removes sky, trees, and buildings.
+6. **Lane line fitting (extra)**: a probabilistic Hough transform finds line pieces. They are split into left and right by slope, averaged (longer pieces count more), and drawn in red on the original image. The lines stop at the vanishing point to avoid an "X" shape.
+
+## Pipeline stages saved to `output/`
+
+| File suffix | Description |
+|-------------|-------------|
+| `_1_original` | Resized input image |
+| `_2_hsv_mask` | Binary white + yellow mask |
+| `_3_hsv_filtered` | Original image with only white/yellow pixels |
+| `_4_blurred` | After Gaussian blur |
+| `_5_canny_edges` | Canny edge map |
+| `_6_roi_region` | ROI trapezoid drawn on the image |
+| `_7_roi_edges` | Edges inside the ROI only |
+| `_8_final_lanes` | Detected lane lines drawn on the image |
+| `_pipeline_grid` | All 8 stages in one picture |
+
+## Installation
+
+Requires Python 3.8+.
+
+```bash
+git clone https://github.com/<your-username>/<your-repo>.git
+cd <your-repo>
+pip install opencv-python numpy
+```
+
+## Usage
+
+```bash
+python lane_extractor.py
+```
+
+The program is interactive:
+
+1. Enter the path of an image or a folder of images (`q` to quit).
+2. Choose whether to customize the settings (`y` / `N`).
+3. The stages are saved to `output/` and shown in a window (press any key to close it).
+4. After each image: `Enter` = next image, `r` = retune settings for this image, `q` = quit.
+
+Supported formats: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.webp`. Landscape road photos taken from the driver's point of view work best.
+
+## Settings
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `horizon` | 0.60 | Height of the ROI top edge (0 = top of image, 1 = bottom). Range 0.4 to 0.85 |
+| `white_v` | auto | White brightness threshold (0 to 255) |
+| `blur` | 5 | Gaussian blur kernel size (must be odd) |
+| `canny_low` | 50 | Canny lower threshold |
+| `canny_high` | 150 | Canny upper threshold |
+
+### Tuning tips
+
+- Lane lines missing: lower `white_v` or `canny_low`, or move `horizon` up.
+- Too much noise or false lines: raise `canny_low`/`canny_high`, increase `blur`, or move `horizon` down.
+- Strong shadows or very bright roads: set `white_v` manually.
+
+## Project structure
+
+```
+.
+├── lane_extractor.py     # main script
 ├── README.md
-├── requirements.txt
-├── test1.jpeg
-├── test2.jpeg
-├── lane_detection_1.png
-├── lane_detection_2.png
-└── output/
+├── test_images/          # your road images
+└── output/               # generated results and screenshots
+```
 
-⚙️ Installation
-1. Clone the repository
-bash
-git clone https://github.com/kotharideev-sys/lane-extractor.git
-cd lane-line-extractor
+## Limitations
 
-2. Install the dependencies
+- Works on static images only (no temporal smoothing like in video).
+- Assumes a roughly straight road and a forward-facing camera; sharp curves are approximated by straight lines.
+- The fixed ROI trapezoid assumes the camera is centered and the horizon is near the middle of the image.
+- Performance drops in heavy shadows, night scenes, rain, or faded paint.
 
-Create a requirements.txt file containing:
+## Possible improvements
 
-text
-opencv-python
-numpy
+- Perspective (bird's-eye) transform with polynomial curve fitting for curved lanes.
+- Adaptive ROI based on the detected vanishing point.
+- Temporal smoothing for video input.
+- Evaluation against a labeled dataset (for example TuSimple).
 
+## Resources
 
-Install the required libraries:
+- [FreeCodeCamp: OpenCV Course - Full Tutorial for Beginners](https://www.freecodecamp.org/)
+- [Towards Data Science: Canny Edge Detection Step-by-Step in Python](https://towardsdatascience.com/)
+- [OpenCV Docs: Image Processing Tutorials](https://docs.opencv.org/)
 
-bash
-pip install -r requirements.txt
+## Author
 
-▶️ How to Run
-
-Execute the Python script:
-
-bash
-python lane_line_extractor.py
-
-
-When prompted, enter the path to an image or a folder containing road images.
-
-For example:
-
-text
-Enter image or folder path (q to quit): .
-
-
-The program processes the selected images and saves the results in the output/ directory.
-
-🔬 Computer Vision Pipeline
-1. Image Loading and Preprocessing
-
-The input road images are loaded using OpenCV and resized to a standard width of 960 pixels while maintaining their aspect ratio.
-
-2. HSV Color Filtering
-
-The images are converted from BGR to HSV color space.
-
-Color masks are applied to identify potential white and yellow lane markings. An automatic brightness threshold is used to help identify white lane markings.
-
-3. Gaussian Blur
-
-Gaussian blur is applied to reduce noise and smooth the image before edge detection.
-
-4. Canny Edge Detection
-
-The Canny edge detector identifies strong intensity changes that may correspond to road lane boundaries.
-
-5. Region of Interest (ROI) Masking
-
-A trapezoidal mask isolates the road area in front of the camera, reducing unwanted edges from trees, mountains, and surrounding scenery.
-
-6. Lane Line Detection
-
-The Probabilistic Hough Line Transform identifies line segments within the ROI. The segments are classified according to their slopes and positions, and suitable segments are combined to estimate the left and right lane boundaries.
-
-The detected lane lines are overlaid on the original image in red.
-
-7. Visualization
-
-The program saves individual processing stages and a combined image showing the complete pipeline.
-
-📸 Results and Screenshots
-
-The following screenshots demonstrate the road images used in the project and the lane line detection visualization.
-
-1. Input Road Image — Test 1
-
-The first image shows a highway with distant mountain scenery and visible road boundaries.
-
-!Input Road Image 1
-
-2. Input Road Image — Test 2
-
-The second image shows a two-lane mountain road surrounded by forest and snow-covered mountains.
-
-!Input Road Image 2
-
-3. Lane Line Detection — Test 1
-
-The red lines illustrate the estimated left and right lane boundaries on the highway image.
-
-!Lane Detection Result 1
-
-4. Lane Line Detection — Test 2
-
-The red lines illustrate the estimated lane boundaries on the mountain road image.
-
-!Lane Detection Result 2
-
-🎛️ Adjustable Parameters
-
-The program allows several settings to be customized interactively.
-
-Parameter	Default Value	Description
-Image width	960 pixels	Standard processing width
-ROI horizon	0.60	Controls the upper boundary of the road region
-White brightness threshold	Automatic	Controls white lane-marking detection
-Gaussian blur kernel	5 × 5	Controls image smoothing
-Canny low threshold	50	Lower edge detection threshold
-Canny high threshold	150	Upper edge detection threshold
-
-These parameters can be adjusted to improve detection under different road and lighting conditions.
-
-⚠️ Limitations
-Detection accuracy depends on the visibility of lane markings.
-Shadows and reflections can affect color filtering.
-Faded lane markings may not be detected correctly.
-Incorrect ROI settings can exclude relevant road boundaries.
-Curved roads may require more advanced lane modeling.
-The system is designed for static images and is not a production-ready autonomous driving solution.
-🚀 Future Improvements
-Improve lane detection on curved roads.
-Add perspective transformation for a bird's-eye view.
-Implement video-based lane tracking.
-Improve detection under varying lighting conditions.
-Evaluate accuracy using labeled road images.
-📚 Learning Resources
-OpenCV Official Image Processing Tutorials
-OpenCV Canny Edge Detection
-OpenCV Hough Line Transform
-freeCodeCamp OpenCV Resources
-Towards Data Science
-🎓 Learning Outcomes
-
-Through this project, I gained practical experience with:
-
-Image loading and resizing using OpenCV.
-HSV color space transformations.
-Color-based lane marking extraction.
-Gaussian smoothing and noise reduction.
-Canny edge detection.
-ROI masking.
-Hough Transform-based line detection.
-Visualization of classical computer vision pipelines.
-👨‍💻 Author
-
-Name: Your Name
-
-GitHub: YOUR-USERNAME
-
-📅 Assignment Details
-
-Assignment: Classical Computer Vision & Lane Line Extractor
-
-Submission Date: Monday, 26 October 2026
-
-Built using Python, OpenCV, and NumPy.
+Your Name — Classical Computer Vision assignment, submitted 26/10/2026.
