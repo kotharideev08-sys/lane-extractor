@@ -37,7 +37,7 @@ lane-line-extractor/
 ⚙️ Installation
 1. Clone the repository
 bash
-git clone https://github.com/YOUR-USERNAME/lane-line-extractor.git
+git clone https://github.com/kotharideev-sys/lane-extractor.git
 cd lane-line-extractor
 
 2. Install the dependencies
