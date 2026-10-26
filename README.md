@@ -121,6 +121,3 @@ Supported formats: `.jpg`, `.jpeg`, `.png`, `.bmp`, `.webp`. Landscape road phot
 - [Towards Data Science: Canny Edge Detection Step-by-Step in Python](https://towardsdatascience.com/)
 - [OpenCV Docs: Image Processing Tutorials](https://docs.opencv.org/)
 
-## Author
-
-Your Name — Classical Computer Vision assignment, submitted 26/10/2026.
