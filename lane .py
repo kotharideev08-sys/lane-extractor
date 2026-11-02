@@ -109,7 +109,6 @@ def hsv_filter(img, roi_mask, white_v):
     filtered = cv2.bitwise_and(img, img, mask=mask)
     return mask, filtered, white_v
 
-
 def average_line(group):
     """Average many line pieces into one line (longer pieces count more)."""
     if len(group) == 0:
